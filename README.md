@@ -1,6 +1,6 @@
 # PROVA Benchmark Guillem Ballonga
 
-En aquest repositori hi trobaràs les tasques 1 i 2 de la prova encarregada a la entrevista.
+En aquest repositori hi trobaràs les tasques 1, 2 i 3 de la prova encarregada a la entrevista.
 
 ## Tasca 1
 

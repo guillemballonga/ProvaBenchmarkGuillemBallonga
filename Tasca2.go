@@ -8,9 +8,10 @@ import(
 )
 
 //funció per mesurar la latencia (temps de resposta a una petició)
-func RealicePetition(url string, totalLatency *float64, nErrors *int){
+func RealicePetition(url string, totalLatency *float64, nErrors *int, k bool){
     //enregistrem un contat de temps a start
     start := time.Now()
+    
     
     //realitza la petició
     resp, err := http.Get(url)
@@ -19,8 +20,11 @@ func RealicePetition(url string, totalLatency *float64, nErrors *int){
     if err != nil {
         *nErrors++
     }
-    defer resp.Body.Close()
     
+    //per activar KeepAlive s'ha de fer un close del body
+    if(k==true){ 
+        defer resp.Body.Close()
+    }
     //actualitzem valors    
     latency := time.Since(start).Seconds()
     *totalLatency = *totalLatency + latency
@@ -41,11 +45,7 @@ func main(){
     k := flag.Bool("k", false, "KeepAlive enable o desable")
     
     flag.Parse()
-    //per poguer compilar (BORRAR quan estigui implementat c i k)
-    fmt.Println("k: ",*k)
-    
-    //indica que comença el test al usuari
-    fmt.Println("Benchmarking", *url, "(be patient)")
+
     aux := 0;
     
     //funcio per aplicar concurrencia i limitarla en -c
@@ -63,7 +63,7 @@ func main(){
         go func(i int) {
             defer wg.Done()
             concurrentGoroutines <- struct{}{}
-            RealicePetition(*url, &totalLatency, &nErrors)            
+            RealicePetition(*url, &totalLatency, &nErrors, *k)            
             //indica cada 100 requests completes l'estat del proces al client
             if(i%100==0){
                 aux++;

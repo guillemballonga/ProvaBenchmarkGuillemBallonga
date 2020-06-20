@@ -10,7 +10,11 @@ Aquesta Tasca la pots veure en el document adjunt amb el nom tasca1.pdf
 ## Tasca 2
 
 ```
-Aquesta tasca consta del arxiu programat en go Tasca2.go i el document tasca2.pdf on s'hi mostren les comparacions amb ab.
+Aquesta tasca consta del arxiu programat en go Tasca2.go.
+
+Al fer les comparacions, el temps per test amb el programa fet el GO és més baix pero son nombres raonables. Això pot ser degut a la potencia de GO, el test fet en aquest llenguatge es mes eficient. 
+
+
 ```
 
 ## Tasca 3

@@ -1,10 +1,10 @@
 package main
 import( 
-"fmt"
-"flag"
-"time"
-"net/http"
-
+    "fmt"
+    "flag"
+    "time"
+    "net/http"
+    "sync"    
 )
 
 //funció per mesurar la latencia (temps de resposta a una petició)
@@ -13,13 +13,13 @@ func RealicePetition(url string, totalLatency *float64, nErrors *int){
     start := time.Now()
     
     //realitza la petició
-    result, failReq := http.Get(url)
+    resp, err := http.Get(url)
     
     //detecta les peticions fallides i enregistrem el nombre d'aquetes
-    if failReq != nil {
+    if err != nil {
         *nErrors++
     }
-    defer result.Body.Close()
+    defer resp.Body.Close()
     
     //actualitzem valors    
     latency := time.Since(start).Seconds()
@@ -42,23 +42,40 @@ func main(){
     
     flag.Parse()
     //per poguer compilar (BORRAR quan estigui implementat c i k)
-    fmt.Println("c: ",*c)
-    fmt.Println("h: ",*k)
+    fmt.Println("k: ",*k)
     
     //indica que comença el test al usuari
     fmt.Println("Benchmarking", *url, "(be patient)")
     aux := 0;
     
-    //bucle per fer n peticions
-    for i := 0; i < *n; i++ {
-        //mostrem per pantalla un missatge cada 100 peticions per donar una referencia del estat del proces a l'usuari
-        if(i%100==0){
-            aux++;
-            fmt.Printf("Completed %v00 requests \n", aux)
-        }
-        RealicePetition(*url, &totalLatency, &nErrors)
-    }
+    //funcio per aplicar concurrencia i limitarla en -c
+    nivellConcurrencia := flag.Int("nivellConcurrencia", *c, "nombre de subrutines maxim (nivell de concurrencia)")
+    nPeticions := flag.Int("nPeticions", *n, "nombre de peticions que farem")
+    flag.Parse()
     
+    concurrentGoroutines := make(chan struct{}, *nivellConcurrencia)
+    //es crea un WaitGroup per utilitzarlo al final del bucle de subrutines
+    var wg sync.WaitGroup
+    
+    //inici del for de subrutines per fer n peticions
+    for i := 0; i < *nPeticions; i++ {
+        wg.Add(1)
+        go func(i int) {
+            defer wg.Done()
+            concurrentGoroutines <- struct{}{}
+            RealicePetition(*url, &totalLatency, &nErrors)            
+            //indica cada 100 requests completes l'estat del proces al client
+            if(i%100==0){
+                aux++;
+                fmt.Printf("Completed %v00 requests \n", aux)
+            }
+            <-concurrentGoroutines
+        }(i)
+    }
+    //esperem a que totes les subrutines acabin
+    wg.Wait()
+    
+    //indica que hem acabat de fer les peticions
     fmt.Println("Finished ",*n, "requests")
     
     //Imprimir per pantalla els resultats del testing    
@@ -66,13 +83,12 @@ func main(){
     fmt.Println("Server Hostname:", *url, "\n")
     
     //Average latency
-    fmt.Println("Time taken for tests:", totalLatency, "seconds")
+    fmt.Printf("Time taken for tests: %.3f seconds \n", totalLatency)
     
     //Errored responses (amount, percentage %)
     fmt.Println("Failed requests:", nErrors)
     fmt.Println("% Failed requests:", ((nErrors*100)/(*n)), "%")
     
     //Transactions Per Second (TPS)
-    fmt.Println("Requests per second:", ((float64(*n))/totalLatency), "[#/sec] (mean)")
-    
+    fmt.Printf("Requests per second: %.3f [#/sec] (mean)\n", ((float64(*n))/totalLatency))    
 }
